@@ -71,14 +71,14 @@ def create_csv_from_dataset(dataset, save_folder, split_name, temp_wav_folder):
                 if "raw_transcription" not in example:
                     # print(f"Không tìm thấy trường raw_transcription ở mẫu {idx}")
                     if "raw_transcription" in example:
-                        wrd = example["raw_transcription"].upper()
+                        wrd = example["raw_transcription"].lower()
                         # print(f"Sử dụng trường raw_transcription thay thế")
                     else:
                         # print(f"Không tìm thấy raw_transcription, bỏ qua mẫu {idx}")
                         error_count += 1
                         continue
                 else:
-                    wrd = example["raw_transcription"].upper()
+                    wrd = example["raw_transcription"].lower()
                 
                 # Speaker ID
                 spk_id = f"VIVOS_{split_name.upper()}"
