@@ -9,7 +9,7 @@ from pathlib import Path
 import sentencepiece as spm
 import sys
 
-from huggingface_hub import login, HfApi
+from huggingface_hub import login, HfApi,create_repo
 from pathlib import Path
 import os
 
@@ -21,10 +21,11 @@ if not token:
 # Đăng nhập
 login(token=token)
 
-# Hàm upload checkpoint
 def upload_checkpoint_to_hf(checkpoint_dir, repo_id, epoch):
     api = HfApi()
-    checkpoint_dir = Path(checkpoint_dir)
+    # Tạo repository nếu chưa tồn tại
+    create_repo(repo_id=repo_id, repo_type="model", exist_ok=True)
+    # Duyệt qua tất cả file trong thư mục checkpoint
     for file_path in checkpoint_dir.glob("*"):
         if file_path.is_file():
             path_in_repo = f"checkpoints/epoch_{epoch}/{file_path.name}"
@@ -34,7 +35,7 @@ def upload_checkpoint_to_hf(checkpoint_dir, repo_id, epoch):
                 repo_id=repo_id,
                 repo_type="model",
             )
-            print(f"✅ Uploaded {file_path.name} to {path_in_repo}")
+            print(f"Uploaded {file_path.name} to {path_in_repo}")
 
 # Define training procedure
 class ASR(sb.core.Brain):
@@ -169,7 +170,6 @@ class ASR(sb.core.Brain):
 
     def on_stage_end(self, stage, stage_loss, epoch):
         """Gets called at the end of a epoch."""
-        # Compute/store important stats
         stage_stats = {"loss": stage_loss}
         if stage == sb.Stage.TRAIN:
             self.train_stats = stage_stats
@@ -183,9 +183,7 @@ class ASR(sb.core.Brain):
             ):
                 stage_stats["WER"] = self.wer_metric.summarize("error_rate")
 
-        # log stats and save checkpoint at end-of-epoch
         if stage == sb.Stage.VALID:
-
             lr = self.hparams.noam_annealing.current_lr
             steps = self.optimizer_step
             optimizer = self.optimizer.__class__.__name__
@@ -202,6 +200,7 @@ class ASR(sb.core.Brain):
                 valid_stats=stage_stats,
             )
 
+            # Lưu checkpoint cục bộ
             self.checkpointer.save_and_keep_only(
                 meta={"ACC": stage_stats["ACC"], "epoch": epoch},
                 max_keys=["ACC"],
@@ -211,13 +210,13 @@ class ASR(sb.core.Brain):
             # Tìm thư mục checkpoint mới nhất
             checkpoint_dirs = sorted(
                 self.checkpointer.checkpoints_dir.glob("CKPT*"),
-                key=lambda x: x.stat().mtime,
+                key=lambda x: x.stat().st_mtime,  # Sửa từ mtime thành st_mtime
                 reverse=True
             )
             if checkpoint_dirs:
                 latest_checkpoint_dir = checkpoint_dirs[0]
                 # Tải tất cả file trong thư mục checkpoint lên Hugging Face
-                upload_checkpoint_to_hf(latest_checkpoint_dir, "MinhNghia/checkpointSpeech", epoch)
+                upload_checkpoint_to_hf(latest_checkpoint_dir, "MinhNghia/speechCheckPoint", epoch)
 
         elif stage == sb.Stage.TEST:
             self.hparams.train_logger.log_stats(
@@ -228,9 +227,6 @@ class ASR(sb.core.Brain):
                 with open(self.hparams.test_wer_file, "w") as w:
                     self.wer_metric.write_stats(w)
 
-            # save the averaged checkpoint at the end of the evaluation stage
-            # delete the rest of the intermediate checkpoints
-            # ACC is set to 1.1 so checkpointer only keeps the averaged checkpoint
             self.checkpointer.save_and_keep_only(
                 meta={"ACC": 1.1, "epoch": epoch},
                 max_keys=["ACC"],
