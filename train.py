@@ -9,6 +9,33 @@ from pathlib import Path
 import sentencepiece as spm
 import sys
 
+from huggingface_hub import login, HfApi
+from pathlib import Path
+import os
+
+# Load token từ biến môi trường
+token = os.getenv("HF_TOKEN")
+if not token:
+    raise ValueError("⚠️ HF_TOKEN chưa được đặt trong biến môi trường!")
+
+# Đăng nhập
+login(token=token)
+
+# Hàm upload checkpoint
+def upload_checkpoint_to_hf(checkpoint_dir, repo_id, epoch):
+    api = HfApi()
+    checkpoint_dir = Path(checkpoint_dir)
+    for file_path in checkpoint_dir.glob("*"):
+        if file_path.is_file():
+            path_in_repo = f"checkpoints/epoch_{epoch}/{file_path.name}"
+            api.upload_file(
+                path_or_fileobj=str(file_path),
+                path_in_repo=path_in_repo,
+                repo_id=repo_id,
+                repo_type="model",
+            )
+            print(f"✅ Uploaded {file_path.name} to {path_in_repo}")
+
 # Define training procedure
 class ASR(sb.core.Brain):
     def compute_forward(self, batch, stage):
@@ -180,6 +207,17 @@ class ASR(sb.core.Brain):
                 max_keys=["ACC"],
                 num_to_keep=self.hparams.avg_checkpoints,
             )
+
+            # Tìm thư mục checkpoint mới nhất
+            checkpoint_dirs = sorted(
+                self.checkpointer.checkpoints_dir.glob("CKPT*"),
+                key=lambda x: x.stat().mtime,
+                reverse=True
+            )
+            if checkpoint_dirs:
+                latest_checkpoint_dir = checkpoint_dirs[0]
+                # Tải tất cả file trong thư mục checkpoint lên Hugging Face
+                upload_checkpoint_to_hf(latest_checkpoint_dir, "MinhNghia/checkpointSpeech", epoch)
 
         elif stage == sb.Stage.TEST:
             self.hparams.train_logger.log_stats(
