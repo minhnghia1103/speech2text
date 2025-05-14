@@ -36,7 +36,7 @@ def create_csv_from_dataset(dataset, save_folder, split_name, temp_wav_folder):
         
         for idx, example in enumerate(dataset[split_name]):
             try:
-                snt_id = f"VIVOS_{split_name.lower()}_{idx+1:03d}"
+                snt_id = f"VIVOS_{split_name.upper()}_{idx+1:03d}"
                 wav_path = os.path.join(temp_wav_folder, f"{snt_id}.wav")
                 
                 # Xử lý trường audio
@@ -69,16 +69,16 @@ def create_csv_from_dataset(dataset, save_folder, split_name, temp_wav_folder):
                 
                 # Xử lý raw_raw_transcription
                 if "raw_transcription" not in example:
-                    print(f"Không tìm thấy trường raw_transcription ở mẫu {idx}")
+                    # print(f"Không tìm thấy trường raw_transcription ở mẫu {idx}")
                     if "raw_transcription" in example:
-                        wrd = example["raw_transcription"]
-                        print(f"Sử dụng trường raw_transcription thay thế")
+                        wrd = example["raw_transcription"].upper()
+                        # print(f"Sử dụng trường raw_transcription thay thế")
                     else:
-                        print(f"Không tìm thấy raw_transcription, bỏ qua mẫu {idx}")
+                        # print(f"Không tìm thấy raw_transcription, bỏ qua mẫu {idx}")
                         error_count += 1
                         continue
                 else:
-                    wrd = example["raw_transcription"]
+                    wrd = example["raw_transcription"].upper()
                 
                 # Speaker ID
                 spk_id = f"VIVOS_{split_name.upper()}"
@@ -87,9 +87,9 @@ def create_csv_from_dataset(dataset, save_folder, split_name, temp_wav_folder):
                 writer.writerow([snt_id, duration, wav_path, spk_id, wrd])
                 success_count += 1
                 
-                # In thông tin tiến độ
-                if (idx + 1) % 10 == 0:
-                    print(f"Đã xử lý {idx + 1} mẫu, thành công: {success_count}, lỗi: {error_count}")
+                # # In thông tin tiến độ
+                # if (idx + 1) % 10 == 0:
+                #     print(f"Đã xử lý {idx + 1} mẫu, thành công: {success_count}, lỗi: {error_count}")
             
             except Exception as e:
                 print(f"Lỗi khi xử lý mẫu {idx}:")
@@ -97,10 +97,10 @@ def create_csv_from_dataset(dataset, save_folder, split_name, temp_wav_folder):
                 error_count += 1
                 continue
     
-    print(f"Hoàn thành xử lý split '{split_name}':")
-    print(f"Tổng số mẫu: {len(dataset[split_name])}")
-    print(f"Thành công: {success_count}")
-    print(f"Lỗi: {error_count}")
+    # print(f"Hoàn thành xử lý split '{split_name}':")
+    # print(f"Tổng số mẫu: {len(dataset[split_name])}")
+    # print(f"Thành công: {success_count}")
+    # print(f"Lỗi: {error_count}")
     
     if success_count == 0:
         print("CẢNH BÁO: Không có mẫu nào được xử lý thành công!")
