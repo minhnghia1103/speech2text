@@ -17,7 +17,6 @@ output_folder: !ref results/vivos
 output_wer_folder: !ref <output_folder>/
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
-test_wer_file: !ref <output_folder>/test/wer.txt
 
 # Language model (LM) pretraining
 # NB: To avoid mismatch, the speech recognizer must be trained with the same
@@ -35,12 +34,10 @@ data_folder: temp_wavs
 # data_folder_rirs: !ref <data_folder>
 train_splits: ["train"]
 dev_splits: ["dev"]
-test_splits: ["test"]
 skip_prep: False
 train_csv: !ref <output_folder>/train.csv
 valid_csv: !ref <output_folder>/dev.csv
-test_csv:
-    - !ref <output_folder>/test.csv
+
 
 skip_train: False
 no_lm: True
